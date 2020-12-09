@@ -2,32 +2,40 @@ const http = require('http');
 const {
     exec
 } = require("child_process");
-
 const port = 3333;
 
 const requestHandler = (request, response) => {
     const params = new URLSearchParams(request.url.substr(1));
     response.end();
 
-    var file = params.get("file");
+    let file = params.get("file");
     let row, col;
     [row, col] = params.get("at").split(":");
 
     if (file.startsWith("file:///")) {
         file = file.substr(8);
 
-        var cmd = `vim --servername main --remote "+call cursor(${row}, ${col})" ${file}`;
+        let cmd = `vim --serverlist`;
         console.log("Executing: " + cmd);
-        exec(cmd, (error, stdout, stderr) => {
-            if (error) {
-                console.log(`error: ${error.message}`);
-                return;
+        let process = exec(cmd, (error, stdout, stderr) => {
+            if (stdout != "") {
+                let servername = stdout.split("\n")[0];
+                let cmd = `vim --servername ${servername} --remote "+call cursor(${row}, ${col})" ${file}`;
+                console.log("Executing: " + cmd);
+                let process = exec(cmd, (error, stdout, stderr) => {
+                    if (error) {
+                        console.log(`error: ${error.message}`);
+                        return;
+                    }
+                    if (stderr) {
+                        console.log(`stderr: ${stderr}`);
+                        return;
+                    }
+                    console.log(`${stdout}`);
+                });
+            } else {
+                console.log("No vim server found.");
             }
-            if (stderr) {
-                console.log(`stderr: ${stderr}`);
-                return;
-            }
-            console.log(`${stdout}`);
         });
     }
 };
